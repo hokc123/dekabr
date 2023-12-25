@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: main
+
+jobs:
+  login:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+      - run: docker build -t ghcr.io/jay797l/app-server-alpine .
+      - name: pushing
+        run: docker push ghcr.io/jay797l/app-server-alpine
+      - name: TelegramNotificationSuccess
+        uses: appleboy/telegram-action@master
+        if: success()
+        with:
+            to: ${{ secrets.TELEGRAM_CHAT_ID }}
+            token: ${{ secrets.TELEGRAM_TOKEN }}
+            args: Docker push Success
+      - name: TelegramNotificationFailure
+        uses: appleboy/telegram-action@master
+        if: failure()
+        with:
+            to: ${{ secrets.TELEGRAM_CHAT_ID }}
+            token: ${{ secrets.TELEGRAM_TOKEN }}
+            args: Docker push failure
+      - name: Deploy to Gitpod
+        run: ssh -o "StrictHostKeyChecking no " 'jay797l-dolgzadecember-4mp8fpmj09y#qSkuRPDp89l1Jf6GjtjgHooBe-CLOIEk@jay797l-dolgzadecember-4mp8fpmj09y.ssh.ws-eu107.gitpod.io'  'cd /workspace/dolgzadecember/.github/workflows && docker compose pull && docker compose up -d'
+      
